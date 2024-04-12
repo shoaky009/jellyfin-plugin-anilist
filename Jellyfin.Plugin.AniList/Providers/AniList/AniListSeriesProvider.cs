@@ -46,7 +46,8 @@ namespace Jellyfin.Plugin.AniList.Providers.AniList
             }
             else
             {
-                var searchName = info.Name;
+                var searchName = string.IsNullOrEmpty(info.OriginalTitle) ? info.Name : info.OriginalTitle;
+                _log.LogInformation("GetMetadata AniList... Searching({Name})", searchName);
                 MediaSearchResult msr;
                 if(config.UseAnitomyLibrary)
                 { //Use Anitomy to extract the title
@@ -62,10 +63,9 @@ namespace Jellyfin.Plugin.AniList.Providers.AniList
                 }
                 if(!config.UseAnitomyLibrary || media == null)
                 {
-                    searchName = info.Name;
                     searchName = AnilistSearchHelper.PreprocessTitle(searchName);
                     _log.LogInformation("Start AniList... Searching({Name})", searchName);
-                    msr = await _aniListApi.Search_GetSeries(info.Name, cancellationToken);
+                    msr = await _aniListApi.Search_GetSeries(searchName, cancellationToken);
                     if (msr != null)
                     {
                         media = await _aniListApi.GetAnime(msr.id.ToString());
