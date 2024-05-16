@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Model.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Controller.Entities;
@@ -198,11 +199,11 @@ namespace Jellyfin.Plugin.AniList.Providers.AniList
             {
                 foreach (VoiceActor va in edge.voiceActors)
                 {
-                    if (config.FilterPeopleByTitlePreference) {
-                        if (config.TitlePreference != TitlePreferenceType.Localized && va.language != "JAPANESE") {
+                    if (config.PersonLanguageFilterPreference != LanguageFilterType.All) {
+                        if (config.PersonLanguageFilterPreference == LanguageFilterType.Japanese && va.language != "Japanese") {
                             continue;
                         }
-                        if (config.TitlePreference == TitlePreferenceType.Localized && va.language == "JAPANESE") {
+                        if (config.PersonLanguageFilterPreference == LanguageFilterType.Localized && va.language == "Japanese") {
                             continue;
                         }
                     }
@@ -210,11 +211,17 @@ namespace Jellyfin.Plugin.AniList.Providers.AniList
                         Name = va.name.full,
                         ImageUrl = va.image.large ?? va.image.medium,
                         Role = edge.node.name.full,
-                        Type = PersonType.Actor,
+                        Type = PersonKind.Actor,
                         ProviderIds = new Dictionary<string, string>() {{ProviderNames.AniList, this.id.ToString()}}
                     });
                 }
             }
+
+            if (config.MaxPeople > 0)
+            {
+                lpi = lpi.Take(config.MaxPeople).ToList();
+            }
+
             return lpi;
         }
 
@@ -281,6 +288,10 @@ namespace Jellyfin.Plugin.AniList.Providers.AniList
             else if (this.status == "RELEASING")
             {
                 result.Status = SeriesStatus.Continuing;
+            }
+            else if (this.status == "NOT_YET_RELEASED")
+            {
+                result.Status = SeriesStatus.Unreleased;
             }
 
             return result;
